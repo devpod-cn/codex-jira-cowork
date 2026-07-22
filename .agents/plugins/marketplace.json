@@ -1,0 +1,20 @@
+{
+  "name": "agents-cowork-with-jira",
+  "interface": {
+    "displayName": "Agents Cowork With Jira"
+  },
+  "plugins": [
+    {
+      "name": "jira-sync",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jira-sync"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

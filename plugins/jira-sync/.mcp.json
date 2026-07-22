@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "jira-sync": {
+      "type": "stdio",
+      "command": "sh",
+      "args": [
+        "-c",
+        "cache_base=\"${CODEX_HOME:-$HOME/.codex}/plugins/cache/agents-cowork-with-jira/jira-sync\"; version=\"$(find \"$cache_base\" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n 1 | xargs basename 2>/dev/null)\"; root=\"$cache_base/$version\"; if [ -z \"$version\" ] || [ ! -f \"$root/bin/codex-mcp-launcher.mjs\" ]; then exit 1; fi; exec node \"$root/bin/codex-mcp-launcher.mjs\""
+      ],
+      "env": {
+        "JIRA_SYNC_AGENT": "codex"
+      }
+    }
+  }
+}

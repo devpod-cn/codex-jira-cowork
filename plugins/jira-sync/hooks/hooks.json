@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'cache_base=\"${CODEX_HOME:-$HOME/.codex}/plugins/cache/agents-cowork-with-jira/jira-sync\"; version=\"$(find \"$cache_base\" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n 1 | xargs basename 2>/dev/null)\"; root=\"$cache_base/$version\"; if [ -n \"$version\" ] && [ -f \"$root/bin/codex-sessionstart-launcher.mjs\" ]; then exec node \"$root/bin/codex-sessionstart-launcher.mjs\"; fi; echo \"jira-sync hook: could not resolve Codex SessionStart launcher\" >&2; exit 0'",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'cache_base=\"${CODEX_HOME:-$HOME/.codex}/plugins/cache/agents-cowork-with-jira/jira-sync\"; version=\"$(find \"$cache_base\" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n 1 | xargs basename 2>/dev/null)\"; root=\"$cache_base/$version\"; if [ -n \"$version\" ] && [ -f \"$root/bin/codex-hook-launcher.mjs\" ]; then exec node \"$root/bin/codex-hook-launcher.mjs\"; fi; echo \"jira-sync hook: could not resolve Codex hook launcher\" >&2; printf \"{}\"; exit 0'",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

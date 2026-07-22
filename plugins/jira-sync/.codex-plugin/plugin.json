@@ -1,0 +1,41 @@
+{
+  "name": "jira-sync",
+  "version": "1.0.0",
+  "description": "Sync Codex sessions, config, and terminal identity with Jira through the companion Forge app.",
+  "author": {
+    "name": "devpod-cn",
+    "url": "https://github.com/devpod-cn/Agents-Cowork-with-Jira"
+  },
+  "homepage": "https://github.com/devpod-cn/Agents-Cowork-with-Jira",
+  "repository": "https://github.com/devpod-cn/Agents-Cowork-with-Jira",
+  "keywords": [
+    "jira",
+    "atlassian",
+    "codex",
+    "session-sync",
+    "forge",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Jira Sync",
+    "shortDescription": "Sync Codex sessions and terminals with Jira",
+    "longDescription": "Push and restore Codex sessions, enable per-turn auto-push via hooks, register this Codex terminal, and back up ~/.codex/config.toml through the companion Jira Forge app.",
+    "developerName": "devpod-cn",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/devpod-cn/Agents-Cowork-with-Jira",
+    "privacyPolicyURL": "https://openai.com/policies/row-privacy-policy/",
+    "termsOfServiceURL": "https://openai.com/policies/row-terms-of-use/",
+    "defaultPrompt": [
+      "Push my current Codex session to Jira.",
+      "Restore a Jira-backed Codex session so I can resume it.",
+      "Register this Codex terminal and back up my config.toml."
+    ],
+    "brandColor": "#1D4ED8"
+  }
+}
