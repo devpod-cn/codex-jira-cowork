@@ -15,8 +15,8 @@ keychain slot is path-independent). If the user already configured it from
 Claude Code, this skill usually just verifies and does nothing.
 
 **The token pair is a SECRET. It must NEVER be pasted into this chat** — this
-plugin syncs the raw Codex transcript into Jira (the Stop auto-push hook fires
-once configured), so a pasted token would leak. Tokens move
+plugin syncs the raw Codex transcript into Jira once configured, so a pasted
+token would leak. Tokens move
 clipboard → `store-token.mjs` → OS keychain; the only thing that reaches this
 transcript is `✅ Saved`.
 
@@ -29,7 +29,7 @@ replaced — never just report the failure and stop.
 1. **Verify the current state FIRST** by calling the `jira_test_connection` MCP
    tool (from the `jira-sync` server — it hits the web-trigger `whoami`):
    - **200 / "Authenticated"** → already configured and working. Tell the user
-     it's ready, suggest turning on auto-push with `$jira-auto-push-session`, and
+     it's ready, and
      **stop — do NOT store anything** (nothing to replace).
    - **401 / fail / "not configured"** → either no token yet, or the stored
      token is dead. This is initial setup OR a **rotation**: fall through to
@@ -67,8 +67,7 @@ replaced — never just report the failure and stop.
      bundle** yet (or copied something else). Have them click it and re-run.
 
 3. **Verify again** with `jira_test_connection`:
-   - **200** → ✅ connected as `<email>` (device `<familyId>`); suggest
-     `$jira-auto-push-session` to enable per-turn auto-sync.
+   - **200** → ✅ connected as `<email>` (device `<familyId>`).
    - **fail** → most often a stale clipboard bundle (have them copy a fresh one
      and redo step 2), or the Forge app needs `forge install --upgrade` (the
      `token-family` entity). Diagnose and retry; don't leave the user

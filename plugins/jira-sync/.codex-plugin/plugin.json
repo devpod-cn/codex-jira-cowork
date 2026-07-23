@@ -1,6 +1,6 @@
 {
   "name": "jira-sync",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sync Codex sessions, config, and terminal identity with Jira through the companion Forge app.",
   "author": {
     "name": "devpod-cn",
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Jira Sync",
     "shortDescription": "Sync Codex sessions and terminals with Jira",
-    "longDescription": "Push and restore Codex sessions, enable per-turn auto-push via hooks, register this Codex terminal, and back up ~/.codex/config.toml through the companion Jira Forge app.",
+    "longDescription": "Push and restore Codex sessions, register this Codex terminal, and back up ~/.codex/config.toml through the companion Jira Forge app.",
     "developerName": "devpod-cn",
     "category": "Productivity",
     "capabilities": [

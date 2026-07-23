@@ -13,9 +13,9 @@
  */
 import { readFileSync, writeFileSync, mkdirSync, chmodSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { CONFIG_FILE, migrateLegacyPathsIfNeeded } from './paths.mjs';
+import { CONFIG_FILE } from './paths.mjs';
 
-/** Default on-disk path (~/.jira-sync/config.json; migrated from ~/.claude/jira-sync/ on first use). */
+/** Default on-disk path (~/.jira-sync/config.json). */
 export function defaultConfigPath() {
   return CONFIG_FILE;
 }
@@ -27,7 +27,6 @@ export function defaultConfigPath() {
  * @returns {Record<string, string>}
  */
 export function loadConfigFile(filePath = CONFIG_FILE) {
-  if (filePath === CONFIG_FILE) migrateLegacyPathsIfNeeded();
   try {
     const raw = readFileSync(filePath, 'utf8');
     const data = JSON.parse(raw);
@@ -45,7 +44,6 @@ export function loadConfigFile(filePath = CONFIG_FILE) {
  * @returns {string} The path written.
  */
 export function saveConfigFile(obj, filePath = CONFIG_FILE) {
-  if (filePath === CONFIG_FILE) migrateLegacyPathsIfNeeded();
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, JSON.stringify(obj, null, 2), 'utf8');
   try {
