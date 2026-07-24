@@ -422,4 +422,24 @@ export class ForgeClient {
   async backupCodexConfig(args) {
     return this.callTrigger({ op: 'backup-codex-config', args });
   }
+
+  // -------------------------------------------------------------------------
+  // Unified Codex Backup (APDEVIMP-83 — config + assets + memory, per-category)
+  // -------------------------------------------------------------------------
+
+  /**
+   * 统一上传 Codex 的全部类别（config / agents / skills / rules / hooks /
+   * guidance / local-memory）到 Forge Session Tracker。一次请求携带多类，服务端
+   * 逐类 upsert 到各自 blob（每类独立 checksum，未变短路）。客户端已完成本地脱敏。
+   *
+   * @param {object} args
+   * @param {string} args.clientId - 本 Codex 终端 id
+   * @param {string} args.agent - 客户端标识，通常 'codex'
+   * @param {Array<object>} args.categories - 各类载荷（single: {category,kind,checksum,content}；
+   *   multi: {category,kind,checksum,bundle,manifest,fileCount}）
+   * @returns {Promise<{ ownerAccountId, clientId, results: Record<string, object> }>}
+   */
+  async backupCodex(args) {
+    return this.callTrigger({ op: 'backup-codex', args });
+  }
 }

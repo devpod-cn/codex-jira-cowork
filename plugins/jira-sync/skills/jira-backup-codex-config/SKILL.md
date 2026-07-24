@@ -1,9 +1,14 @@
 ---
 name: jira-backup-codex-config
-description: Back up this Codex terminal's ~/.codex/config.toml to Jira (secrets redacted locally first), attributed to this Codex terminal.
+description: "[deprecated → jira-backup-codex] Back up only this Codex terminal's ~/.codex/config.toml to Jira (secrets redacted locally first), attributed to this Codex terminal."
 ---
 
 # Back up this Codex terminal's config to Jira
+
+> **Deprecated — prefer `$jira-backup-codex`.** That skill backs up the full
+> Codex terminal (config.toml plus custom agents/skills/rules, hooks, AGENTS.md,
+> and `~/.codex/memories`) in one upload. This skill remains only for backing up
+> `config.toml` alone.
 
 Back up `~/.codex/config.toml` (model/provider, features, project trust, MCP
 servers, plugins) to the Jira Session Tracker, so it's stored alongside this

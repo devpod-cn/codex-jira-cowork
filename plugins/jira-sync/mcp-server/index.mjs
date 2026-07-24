@@ -48,6 +48,7 @@ import { collectResources } from '../lib/resource-backup.mjs';
 import { collectMemory } from '../lib/memory-backup.mjs';
 import { collectPlugins } from '../lib/plugins-backup.mjs';
 import { loadCodexConfig, redactTomlSecrets } from '../lib/codex-config-backup.mjs';
+import { collectCodexBackup } from '../lib/codex-backup.mjs';
 import { resolveClientIdentity } from '../lib/client-identity.mjs';
 import { resolveCodexRestorePath } from '../lib/restore-target.mjs';
 import { claudeToRollout } from '../lib/claude-to-rollout.mjs';
@@ -384,6 +385,37 @@ const TOOLS = [
           type: 'boolean',
           description:
             'Preview what would be backed up and which secrets are redacted, without uploading.',
+        },
+      },
+    },
+  },
+  {
+    name: 'jira_backup_codex',
+    description:
+      'Backup THIS Codex terminal\'s full config and custom assets to the Forge Session Tracker in ONE upload: ' +
+      'config.toml (settings/global-state/MCP/plugins), custom agents/skills/rules, hooks, AGENTS.md instructions, ' +
+      'and ~/.codex/memories/** local memory. Each category is stored separately (own revision/checksum) but sent ' +
+      'together. Secrets are redacted locally before upload; the root memories_*.sqlite cache and auth.json are never ' +
+      'sent. Attributed to this auto-registered Codex terminal. Requires JIRA_WEBTRIGGER_URL + an OAuth token.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        dryRun: {
+          type: 'boolean',
+          description:
+            'Preview each category (files, size, redactions, skipped) without uploading.',
+        },
+        categories: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['config', 'agents', 'skills', 'rules', 'hooks', 'guidance', 'local-memory'],
+          },
+          description:
+            'Optional selection — back up only these categories (config = config.toml; agents/skills/' +
+            'rules/hooks = custom assets; guidance = AGENTS.md; local-memory = ~/.codex/memories). ' +
+            'Omit to back up every present category. Unlisted categories are left untouched (each is a ' +
+            'separate blob), so a partial backup never removes the others.',
         },
       },
     },
@@ -1512,6 +1544,126 @@ const handlers = {
           type: 'text',
           text: `❌ Backup failed: ${err.message}${hint}`,
         }],
+        isError: true,
+      };
+    }
+  },
+
+  /**
+   * 统一备份 Codex（~/.codex）的全部类别到 Forge Session Tracker（APDEVIMP-83）。
+   * 本地按类采集（collectCodexBackup，含 TOML/JSON/文本三种脱敏）→ 一次上传，服务端
+   * 逐类存为独立 blob（每类独立 checksum，未变短路）。dryRun=true 仅预览不上传。
+   */
+  jira_backup_codex: async (params) => {
+    // 1. Collect per-category (redaction happens inside the collector).
+    let backup;
+    try {
+      backup = collectCodexBackup();
+    } catch (err) {
+      return {
+        content: [{ type: 'text', text: `❌ Failed to collect Codex backup: ${err.message}` }],
+        isError: true,
+      };
+    }
+
+    const CATEGORY_LABELS = {
+      config: 'config.toml',
+      guidance: 'AGENTS.md',
+      hooks: 'hooks.json',
+      agents: 'agents/',
+      skills: 'skills/',
+      rules: 'rules/',
+      'local-memory': 'memories/',
+    };
+    const ORDER = ['config', 'guidance', 'hooks', 'agents', 'skills', 'rules', 'local-memory'];
+
+    const present = ORDER.map((name) => backup.categories[name]).filter((c) => c && c.present);
+    if (present.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: `ℹ️ Nothing to back up — no Codex config or assets found under ~/.codex (override the path with $CODEX_HOME).`,
+        }],
+      };
+    }
+
+    // Optional selection: back up only the requested categories (each is a
+    // separate blob, so unselected ones are simply left untouched). Omit → all.
+    const requested = Array.isArray(params.categories) && params.categories.length
+      ? new Set(params.categories)
+      : null;
+    const selected = requested ? present.filter((c) => requested.has(c.category)) : present;
+    if (selected.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: `ℹ️ None of the selected categories are present under ~/.codex. Available: ${present.map((c) => c.category).join(', ')}.`,
+        }],
+      };
+    }
+    const deselected = present.filter((c) => !selected.includes(c));
+
+    // 2. Build upload payload + preview lines.
+    const uploadCategories = [];
+    const previewLines = [];
+    for (const c of selected) {
+      const label = CATEGORY_LABELS[c.category] || c.category;
+      if (c.kind === 'single') {
+        uploadCategories.push({ category: c.category, kind: 'single', checksum: c.checksum, content: c.content });
+        previewLines.push(`  • ${label} — ${c.sizeBytes} bytes, ${c.redactedCount} redacted`);
+      } else {
+        uploadCategories.push({
+          category: c.category, kind: 'multi', checksum: c.checksum,
+          bundle: c.bundle, manifest: c.manifest, fileCount: c.fileCount,
+        });
+        previewLines.push(`  • ${label} — ${c.fileCount} files, ${c.totalBytes} bytes, ${c.redactedTotal} redacted, ${c.skipped.length} skipped`);
+      }
+    }
+    const absent = ORDER.filter((n) => !backup.categories[n]?.present);
+
+    // 3. dryRun mode: preview, do not upload.
+    if (params.dryRun) {
+      return {
+        content: [{
+          type: 'text',
+          text: `🔍 Dry-run preview (not uploaded)\n\n` +
+            `Categories to back up (${selected.length}):\n${previewLines.join('\n')}\n\n` +
+            (deselected.length ? `Present but NOT selected: ${deselected.map((c) => c.category).join(', ')}\n` : '') +
+            (absent.length ? `Not present (skipped): ${absent.join(', ')}\n` : '') +
+            `\nSecrets are redacted locally before upload; the root memories_*.sqlite cache and auth.json are never sent.`,
+        }],
+      };
+    }
+
+    // 4. Register the Codex terminal (forced codex ownership), then upload all categories at once.
+    try {
+      const forge = getForgeClient();
+      const { clientId } = await ensureClientRegistered(forge, getAdapter('codex'));
+      const result = await forge.backupCodex({ clientId, agent: 'codex', categories: uploadCategories });
+
+      const results = result.results || {};
+      const lines = ORDER.filter((n) => results[n]).map((n) => {
+        const r = results[n];
+        const label = CATEGORY_LABELS[n] || n;
+        if (r.error) return `  ❌ ${label} — ${r.message || r.error}`;
+        if (r.unchanged) return `  ➖ ${label} — unchanged (r${r.revision})`;
+        return `  ${r.created ? '✅' : '🔄'} ${label} — ${r.created ? 'created' : 'updated'} r${r.revision}`;
+      });
+
+      return {
+        content: [{
+          type: 'text',
+          text: `✅ Codex backup uploaded to Forge Session Tracker\n` +
+            `Owner: ${result.ownerAccountId}\nTerminal: ${result.clientId || clientId}\n\n` +
+            lines.join('\n'),
+        }],
+      };
+    } catch (err) {
+      const hint = err.code === 'REGENERATE'
+        ? `\nPlease re-run ${setupHint()} to refresh the OAuth token.`
+        : '';
+      return {
+        content: [{ type: 'text', text: `❌ Backup failed: ${err.message}${hint}` }],
         isError: true,
       };
     }
