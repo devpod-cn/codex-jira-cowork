@@ -23,5 +23,5 @@ Then show the user the returned clientId, display name, host, and version.
 
 - This is the Codex equivalent of Claude Code's `/jira-register-client`.
 - Registration is what makes a terminal manageable in Jira's "My AI Clients"
-  page (list / inspect / archive / clone-detection). Without it, Codex pushes
+  page (list / inspect / clone-detection). Without it, Codex pushes
   still work, but the terminal itself isn't listed.

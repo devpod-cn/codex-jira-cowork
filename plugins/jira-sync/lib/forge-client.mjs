@@ -265,24 +265,16 @@ export class ForgeClient {
   }
 
   /**
-   * 列出当前用户的终端（默认隐藏 archived）。
-   * @param {object} [options] - { includeArchived?: boolean }
+   * 列出当前用户的终端。
    * @returns {Promise<{ clients: Array }>}
    */
-  async listClients(options = {}) {
-    const args = {};
-    if (options.includeArchived) args.includeArchived = true;
-    return this.callTrigger({ op: 'list-clients', args });
+  async listClients() {
+    return this.callTrigger({ op: 'list-clients', args: {} });
   }
 
   /** 获取单个终端详情（服务端做属主校验）。 */
   async getClient(clientId) {
     return this.callTrigger({ op: 'get-client', args: { clientId } });
-  }
-
-  /** 归档/恢复终端（status: 'archived' | 'active'）。 */
-  async archiveClient(clientId, status = 'archived') {
-    return this.callTrigger({ op: 'archive-client', args: { clientId, status } });
   }
 
   // -------------------------------------------------------------------------

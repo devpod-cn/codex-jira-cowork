@@ -235,7 +235,6 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        includeArchived: { type: 'boolean', description: 'Include archived terminals (default false).' },
         agent: { type: 'string', enum: ['claude', 'codex'], description: 'Marks this agent terminal as current in the list (defaults to auto-detected).' },
       },
     },
@@ -247,20 +246,6 @@ const TOOLS = [
       type: 'object',
       properties: {
         clientId: { type: 'string', description: 'Terminal clientId. Uses the current terminal if omitted.' },
-        agent: { type: 'string', enum: ['claude', 'codex'], description: 'Resolve the current terminal for this agent when clientId is omitted (defaults to auto-detected).' },
-      },
-    },
-  },
-  {
-    name: 'jira_archive_client',
-    description:
-      'Archive (or restore) an AI terminal. Archiving hides it from the default list but ' +
-      'never deletes its backups. Requires JIRA_WEBTRIGGER_URL + an OAuth token.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        clientId: { type: 'string', description: 'Terminal clientId. Uses the current terminal if omitted.' },
-        status: { type: 'string', description: "'archived' (default) or 'active' to restore." },
         agent: { type: 'string', enum: ['claude', 'codex'], description: 'Resolve the current terminal for this agent when clientId is omitted (defaults to auto-detected).' },
       },
     },
@@ -932,7 +917,7 @@ const handlers = {
         return {
           content: [{
             type: 'text',
-            text: '❌ 未找到 settings 备份。请先在另一台机器运行 /storeSettingToAtlassian 备份。',
+            text: '❌ 未找到 settings 备份。请先在另一台机器运行 /jira-backup-claude 备份。',
           }],
           isError: true,
         };
@@ -1135,7 +1120,7 @@ const handlers = {
 
   jira_list_clients: async (params) => {
     const forge = getForgeClient();
-    const result = await forge.listClients({ includeArchived: params.includeArchived });
+    const result = await forge.listClients();
     const clients = result.clients || [];
     if (clients.length === 0) {
       return { content: [{ type: 'text', text: 'No AI terminals registered yet. Run jira_register_client to register this terminal.' }] };
@@ -1143,14 +1128,13 @@ const handlers = {
 
     const currentId = currentClientId(adapterFor(params));
 
-    const cols = ['#', 'Terminal', 'OS', 'Version', 'Last Seen', 'Status', 'Client ID'];
+    const cols = ['#', 'Terminal', 'OS', 'Version', 'Last Seen', 'Client ID'];
     const rows = clients.map((c, i) => [
       String(i + 1),
       (c.clientId === currentId ? '➤ ' : '') + (c.displayName || c.hostname || '?') + (c.cloneSuspect ? ' ⚠️' : ''),
       `${c.osType || '?'}/${c.arch || '?'} ${c.osVersion || ''}`.trim(),
       c.clientVersion || '?',
       fmtTime(c.lastSeenAt),
-      c.status || 'active',
       c.clientId,
     ]);
     const text = `Found ${clients.length} AI terminal(s):\n\n` + renderTable(cols, rows) +
@@ -1181,28 +1165,8 @@ const handlers = {
           `Host: ${c.hostname} (${c.osType}/${c.arch}, ${c.osVersion})\n` +
           `OS user: ${c.osUsername}\n` +
           `IP: ${c.ipAddress || '(not collected)'}\n` +
-          `Version: ${c.clientVersion}\n` +
-          `Status: ${c.status}${c.cloneSuspect === 'true' ? '  ⚠️ possible clone' : ''}\n` +
+          `Version: ${c.clientVersion}${c.cloneSuspect === 'true' ? '  ⚠️ possible clone' : ''}\n` +
           `First/last seen: ${c.firstSeenAt} ~ ${c.lastSeenAt}`,
-      }],
-    };
-  },
-
-  jira_archive_client: async (params) => {
-    const forge = getForgeClient();
-    let clientId = params.clientId;
-    if (!clientId) {
-      clientId = currentClientId(adapterFor(params));
-    }
-    if (!clientId) {
-      return { content: [{ type: 'text', text: '❌ No clientId provided and the current terminal could not be resolved.' }], isError: true };
-    }
-    const status = params.status || 'archived';
-    const result = await forge.archiveClient(clientId, status);
-    return {
-      content: [{
-        type: 'text',
-        text: `✅ Terminal ${result.clientId || clientId} set to ${result.status || status} (historical backups retained).`,
       }],
     };
   },
@@ -1705,7 +1669,7 @@ const handlers = {
         content: [{
           type: 'text',
           text: `ℹ️ 未在 ~/.claude 下找到可备份的自定义资产\n` +
-            `（rules / agents / commands / skills / output-styles / keybindings；记忆文件请用 /storeMemoryToAtlassian）。` +
+            `（rules / agents / commands / skills / output-styles / keybindings；记忆文件请用 /jira-backup-claude）。` +
             (skipped.length ? `\n\n${skippedSummary}` : ''),
         }],
       };

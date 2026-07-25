@@ -72,7 +72,6 @@ Never sent: `auth.json` (credentials), `sessions/`, `history.jsonl`, the root
 
 ## Notes
 
-- This supersedes `$jira-backup-codex-config` (config-only) — prefer this skill.
 - The backup is download-only in Jira (view / download) — it never writes back to
   your `~/.codex` files automatically.
 - Requires the `jira-sync` MCP server configured in `~/.codex/config.toml` and an
